@@ -55,6 +55,8 @@ def simple_get(url):
 raw_html = simple_get("http://www.rutherford.school.nz/daily-panui/")
 html = bs(raw_html, 'html.parser')
 print("got site")
+
+# Parse the recieved site and extract all the notices from it
 class Notice():
     def __init__(self, title, link, date, excerpt):
         self.title = title
@@ -77,17 +79,13 @@ for notice in raw_notices:
 #notices = [notice for notice in notices if notice.day == today.day]
 if len(notices) == 0:
     sys.exit()
-print(f"got {len(notices)} noticies, preparing parsing")
-
-program_email = "stoofinthepoofin@gmail.com"  # Enter your address
-with open("password.txt") as file:
-    password = file.read()
+print(f"got {len(notices)} noticies")
 
 # Generate the html message to be sent
-def generate_message(name, reciever_email):
+def generate_message(recipient):
     text = "Ew get a more up-to-date email client that supports html, jeez."
-    html = f"<html><body><h1 style=\"margin-bottom:0px\">Rutherford College Daily Panui</h1>\
-    Hello there, here is the Panui for {today.strftime('%a')} {today.day}{ordinal[today.day]} of {today.strftime('%B, %Y')}:"
+    html = f"<html><body><h1 style=\"margin-bottom:0px\">Kia Ora {recipient.name},</h1>\
+    Here is the Rutherford College Daily Panui for {today.strftime('%A')} {today.day}{ordinal[today.day]} of {today.strftime('%B, %Y')}:"
     html += "<table>"
     for notice in notices:
         html += "<tr><td style=\"padding: 2em 0 0 0\"><table><tr><td style=\"border:1px solid black; border-radius:5px\">"
@@ -111,28 +109,56 @@ def generate_message(name, reciever_email):
     message.attach(part2)
     return message.as_string()
 
+# Get the email and password for the program
+program_email = "stoofinthepoofin@gmail.com"
+with open("password.txt") as file:
+    password = file.read()
+
 print("sending to recipients...")
-# Send the email to each recipient in the mailing list
+
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
     server.login(program_email, password)
-    emails = []
-    if len(sys.argv) > 1:
-        for email in sys.argv[1:]:
-            emails.append((email, email))
-    else:
+
+    # Simplifies storing of and interaction with recipients
+    class Recipient:
+        def __init__(self, name, email):
+            self.name = name
+            self.email = email
+    # I made this into a fuction because I need to do it twice, and once pay attention to the "#" while the other time ignore it
+    def get_mailing_list(all_people=False):
+        output = []
         with open("mailing_list.csv") as file:
             reader = csv.reader(file)
             next(reader)
             for name, reciever_email in reader:
                 if name[0] == "#":
-                    continue
+                    if all_people:
+                        output.append(Recipient(name[1:], reciever_email))
+                    else:
+                        continue
                 else:
-                    emails.append((name, reciever_email))
+                    output.append(Recipient(name, reciever_email))
+        return output
+    mailing_list = get_mailing_list()
 
-    for name, reciever_email in emails:
-            print(reciever_email)
-            server.sendmail(program_email, reciever_email, generate_message(name, reciever_email))
+    # If an email was manually supplied, find it's corresponding name in mailing_list.csv (if it has one, otherwise just use email twice)
+    # Otherwise, just use the mailing list itself
+    emails = []
+    if len(sys.argv) > 1:
+        for reciever_email in sys.argv[1:]:
+            recipient = [x for x in get_mailing_list(True) if x.email == reciever_email]
+            if recipient != []:
+                emails.append(recipient[0])
+            else:
+                emails.append(Recipient(reciever_email, reciever_email))
+    else:
+        emails = mailing_list
+
+    # Send the email!
+    for recipient in emails:
+            print("-", recipient.name, recipient.email)
+            server.sendmail(program_email, recipient.email, generate_message(recipient))
 
 print("sent!")
 
