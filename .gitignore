@@ -1,3 +1,9 @@
+# Password and mailing list - personal stuff
+password.txt
+mailing_list.csv
+error_log.log
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -51,7 +51,7 @@ def simple_get(url):
         print(e)
         return None
 
-
+# Don't change to https :)
 raw_html = simple_get("http://www.rutherford.school.nz/daily-panui/")
 html = bs(raw_html, 'html.parser')
 print("got site")
@@ -70,7 +70,6 @@ for notice in raw_notices:
         notice.find(class_="vcex-blog-entry-title").contents[0].contents[0],
         notice.find(class_="vcex-blog-entry-title").find("a").get('href'),
         notice.find(class_="vcex-blog-entry-date").contents[0],
-        #notice.find(class_="vcex-blog-entry-excerpt").decode_contents().replace("<p>", "<p style=\"margin: 1em 0 0 0\">")
         notice.find(class_="vcex-blog-entry-excerpt").decode_contents()
         )
     )
@@ -85,29 +84,32 @@ with open("password.txt") as file:
     password = file.read()
 
 # Generate the html message to be sent
-text = "Ew get a more up-to-date email client that supports html, jeez."
-html = f"<html><body><h1 style=\"margin-bottom:0px\">Rutherford College Daily Panui</h1>\
-Hello there, here is the Panui for {today.strftime('%a')} {today.day}{ordinal[today.day]} of {today.strftime('%B, %Y')}:"
-html += "<table>"
-for notice in notices:
-    html += "<tr><td style=\"border:1px solid black; border-radius:5px\">"
-    html += f"<span style=\"padding: 0.4em 0 0 0; display:block; font-size:1.5em; font-weight:bold\">{notice.title}</span>"
-    html += "<span style=\"display:block; margin:0\">" + notice.date + "</span>"
-    html += notice.excerpt
-    html += f"<a href=\"{notice.link}\" style=\"padding: 0 0 1em 0; font-size:0.83em\">read more ></a>"
-    html += "</td></tr>"
+def generate_message(name, reciever_email):
+    text = "Ew get a more up-to-date email client that supports html, jeez."
+    html = f"<html><body><h1 style=\"margin-bottom:0px\">Rutherford College Daily Panui</h1>\
+    Hello there, here is the Panui for {today.strftime('%a')} {today.day}{ordinal[today.day]} of {today.strftime('%B, %Y')}:"
+    html += "<table>"
+    for notice in notices:
+        html += "<tr><td style=\"padding: 2em 0 0 0\"><table><tr><td style=\"border:1px solid black; border-radius:5px\">"
+        html += f"<span style=\"padding: 0.4em 0 0 0; display:block; font-size:1.5em; font-weight:bold\">{notice.title}</span>"
+        html += "<span style=\"display:block; margin:0\">" + notice.date + "</span>"
+        html += notice.excerpt
+        html += f"<a href=\"{notice.link}\" style=\"padding: 0 0 1em 0; font-size:0.83em\">read more ></a>"
+        html += "</td></tr></table></tr></td>"
 
-html +="</table>"
-html += "<h6>Wish to Unsubscribe from these emails? Click <a href=\"https://bit.ly/IqT6zt\">here</a>.</h6></body></html>"
+    html +="</table>"
+    html += "<h6>Wish to Unsubscribe from these emails? Click <a href=\"https://bit.ly/IqT6zt\">here</a>.</h6></body></html>"
 
-# Make the neccecary message objects for sending the email (not strictly neccesssary but we have to if we want to send emails not-shittily)
-message = MIMEMultipart("alternative")
-message["Subject"] = today.strftime("Rutherford Panui, %d/%m/%y")
-message["From"] = program_email
-part1 = MIMEText(text, "plain")
-part2 = MIMEText(html, "html")
-message.attach(part1)
-message.attach(part2)
+    # Make the neccecary message objects for sending the email (not strictly neccesssary but we have to if we want to send emails not-shittily)
+    message = MIMEMultipart("alternative")
+    message["Subject"] = today.strftime("Rutherford Panui, %d/%m/%y")
+    message["From"] = program_email
+    message["To"] = reciever_email
+    part1 = MIMEText(text, "plain")
+    part2 = MIMEText(html, "html")
+    message.attach(part1)
+    message.attach(part2)
+    return message.as_string()
 
 print("sending to recipients...")
 # Send the email to each recipient in the mailing list
@@ -130,8 +132,7 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
 
     for name, reciever_email in emails:
             print(reciever_email)
-            message["To"] = reciever_email
-            server.sendmail(program_email, reciever_email, message.as_string())
+            server.sendmail(program_email, reciever_email, generate_message(name, reciever_email))
 
 print("sent!")
 
