@@ -85,7 +85,7 @@ print(f"got {len(notices)} noticies")
 def generate_message(recipient):
     text = "Ew get a more up-to-date email client that supports html, jeez."
     html = f"<html><body><h1 style=\"margin-bottom:0px\">Kia Ora {recipient.name},</h1>\
-    Here is the Rutherford College Daily Panui for {today.strftime('%A')} {today.day}{ordinal[today.day]} of {today.strftime('%B, %Y')}:"
+    Here is the Rutherford College Daily Panui for {today.strftime('%A')} {today.day}{ordinal[today.day-1]} of {today.strftime('%B, %Y')}:"
     html += "<table>"
     for notice in notices:
         html += "<tr><td style=\"padding: 2em 0 0 0\"><table><tr><td style=\"border:1px solid black; border-radius:5px\">"
